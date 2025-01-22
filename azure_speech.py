@@ -19,39 +19,61 @@ speech_config.speech_recognition_language="es-CO"
 speech_config.speech_synthesis_voice_name = "es-CO-GonzaloNeural"
 
 
-# speech_config.set_property(
-#     property_id=speechsdk.PropertyId.SpeechServiceConnection_SingleLanguageIdPriority, 
-#     value="Telephone"
-# )
 
+# def transcribe_audio():
+#     """Reconoce el habla y devuelve el texto transcrito."""
+#     audio_config = speechsdk.audio.AudioConfig(use_default_microphone=True)
+#     speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,audio_config=audio_config)
+#     print("Habla ahora...")
+#     result = speech_recognizer.recognize_once_async().get()
+#     if result.reason == speechsdk.ResultReason.RecognizedSpeech:
+#         print(f"Usuario dijo: {result.text}")
+#         return result.text
+#     else:
+#         print("No se reconoció nada.")
+#         return None
 
-def transcribe_audio():
-    """Reconoce el habla y devuelve el texto transcrito."""
-    audio_config = speechsdk.audio.AudioConfig(use_default_microphone=True)
-    speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config,audio_config=audio_config)
-    print("Habla ahora...")
-    result = speech_recognizer.recognize_once_async().get()
+# def synthesize_speech(text):
+#     try:
+#         speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
+#         speech_synthesizer.voice_name = "es-CO-GonzaloNeural"  # O cualquier otra voz optimizada
+#         result = speech_synthesizer.speak_text_async(text).get()
+
+#         if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+#             print("Respuesta sintetizada correctamente.")
+#         elif result.reason == speechsdk.ResultReason.Canceled:
+#             cancellation_details = result.cancellation_details
+#             print(f"Error: Síntesis cancelada. Razón: {cancellation_details.reason}")
+#             if cancellation_details.error_details:
+#                 print(f"Detalles del error: {cancellation_details.error_details}")
+#         else:
+#             print(f"Error: Resultado inesperado. Razón: {result.reason}")
+#     except Exception as e:
+#         print(f"Excepción durante la síntesis de voz: {e}")
+
+def transcribe_audio(audio_path):
+    """Transcribe un archivo de audio a texto."""
+    audio_config = speechsdk.audio.AudioConfig(filename=audio_path)
+    speech_recognizer = speechsdk.SpeechRecognizer(speech_config=speech_config, audio_config=audio_config)
+    result = speech_recognizer.recognize_once()
+
     if result.reason == speechsdk.ResultReason.RecognizedSpeech:
-        print(f"Usuario dijo: {result.text}")
+        print(f"Transcripción: {result.text}")
         return result.text
+    elif result.reason == speechsdk.ResultReason.NoMatch:
+        print("No se encontró coincidencia en el audio.")
+        return None
     else:
-        print("No se reconoció nada.")
+        print(f"Error al transcribir audio: {result.reason}")
         return None
 
-def synthesize_speech(text):
-    try:
-        speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config)
-        speech_synthesizer.voice_name = "es-CO-GonzaloNeural"  # O cualquier otra voz optimizada
-        result = speech_synthesizer.speak_text_async(text).get()
+def synthesize_speech(text, output_path):
+    """Convierte texto en un archivo de audio."""
+    audio_config = speechsdk.audio.AudioConfig(filename=output_path)
+    speech_synthesizer = speechsdk.SpeechSynthesizer(speech_config=speech_config, audio_config=audio_config)
+    result = speech_synthesizer.speak_text_async(text).get()
 
-        if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
-            print("Respuesta sintetizada correctamente.")
-        elif result.reason == speechsdk.ResultReason.Canceled:
-            cancellation_details = result.cancellation_details
-            print(f"Error: Síntesis cancelada. Razón: {cancellation_details.reason}")
-            if cancellation_details.error_details:
-                print(f"Detalles del error: {cancellation_details.error_details}")
-        else:
-            print(f"Error: Resultado inesperado. Razón: {result.reason}")
-    except Exception as e:
-        print(f"Excepción durante la síntesis de voz: {e}")
+    if result.reason == speechsdk.ResultReason.SynthesizingAudioCompleted:
+        print("Audio sintetizado correctamente.")
+    else:
+        print(f"Error en la síntesis: {result.reason}")
