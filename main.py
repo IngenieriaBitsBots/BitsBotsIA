@@ -315,6 +315,20 @@ async def handle_call(request):
         print(f"Error procesando la llamada: {e}")
         return web.Response(status=500, text="Error procesando la llamada.")
 
+async def test_service(request):
+    """Servicio de prueba para verificar si el endpoint responde correctamente."""
+    try:
+        return web.json_response({
+            "status": "success",
+            "message": "El servicio está funcionando correctamente.",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
+        }, status=200)
+    except Exception as e:
+        return web.json_response({
+            "status": "error",
+            "message": f"Error en el servicio de prueba: {str(e)}"
+        }, status=500)
+
 def main_bot():
     """Flujo principal del bot."""
     # Inicializar las clases
@@ -379,6 +393,9 @@ if __name__ == "__main__":
 
     # Ruta para llamadas de ACS
     app.router.add_post("/api/calls", handle_call)
+
+    # Ruta para el servicio de prueba
+    app.router.add_get("/api/test", test_service)
 
     # Iniciar el servidor
     web.run_app(app, host="0.0.0.0", port=8000)
