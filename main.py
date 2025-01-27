@@ -293,12 +293,19 @@ async def handle_call(request):
     """Procesa eventos de llamadas entrantes desde ACS y responde automáticamente."""
     try:
         data = await request.json()
-        print("Evento de llamada recibido:", data)
+        print("Evento recibido:", data)
 
+        # Manejo del handshake de validación
+        if "validationToken" in data:
+            print("Solicitud de validación recibida.")
+            validation_token = data["validationToken"]
+            return web.Response(text=validation_token, status=200)
+
+        # Procesar eventos normales de llamadas entrantes
         if data.get("type") == "incomingCall":
             print("Nueva llamada entrante.")
 
-            # Ejemplo de respuesta automatizada
+            # Respuesta automatizada
             response_text = "Hola, gracias por llamar. Este es un sistema automatizado de triaje médico. Por favor menciona tus síntomas."
             azure_speech = AzureSpeech()
             azure_speech.synthesize_speech(response_text)
