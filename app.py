@@ -292,25 +292,38 @@ def classify_body_part(user_input):
 
 @app.route('/api/calls', methods=['POST'])
 def handle_call():
+    """Procesa eventos de llamadas entrantes desde ACS y responde automáticamente."""
     try:
+        # Obtener los datos del cuerpo de la solicitud
         data = request.get_json()
         print("Evento recibido:", data)
 
+        # Asegúrate de que 'data' esté presente en el cuerpo del JSON
+        if "data" not in data:
+            return jsonify({"error": "Falta el campo 'data' en el cuerpo de la solicitud"}), 400
+        
         # Manejo del handshake de validación
-        if "data" in data and "validationCode" in data["data"]:
+        if "validationCode" in data["data"]:
             print("Solicitud de validación recibida.")
-            validation_token = data["data"]["validationCode"]
-            return validation_token, 200
+            validation_code = data["data"]["validationCode"]
+            return jsonify({"validationToken": validation_code}), 200
 
-        # Procesar otros eventos
+        # Procesar eventos normales de llamadas entrantes
         if data.get("type") == "incomingCall":
             print("Nueva llamada entrante.")
-            return jsonify({"message": "Evento procesado correctamente."}), 200
+
+            # Respuesta automatizada
+            response_text = "Hola, gracias por llamar. Este es un sistema automatizado de triaje médico. Por favor menciona tus síntomas."
+            azure_speech = AzureSpeech()
+            azure_speech.synthesize_speech(response_text)
 
         return '', 200
     except Exception as e:
         print(f"Error procesando la llamada: {e}")
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Error procesando la llamada: {str(e)}"}), 500
+
+
+    
 
 @app.route('/api/test', methods=['GET'])
 def test_service():
