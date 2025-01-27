@@ -298,33 +298,36 @@ def handle_call():
         data = request.get_json()
         print("Evento recibido:", data)
 
-        # Asegúrate de que 'data' esté presente en el cuerpo del JSON
-        if "data" not in data:
-            return jsonify({"error": "Falta el campo 'data' en el cuerpo de la solicitud"}), 400
+        # Verificar que la estructura del JSON sea válida (es una lista)
+        if isinstance(data, list) and len(data) > 0:
+            event_data = data[0].get("data", {})
+
+            # Verificar si contiene el campo 'validationCode' para el handshake de validación
+            if "validationCode" in event_data:
+                print("Solicitud de validación recibida.")
+                validation_code = event_data["validationCode"]
+                return jsonify({"validationResponse": validation_code}), 200
+
+            # Procesar eventos normales de llamadas entrantes
+            if event_data.get("type") == "incomingCall":
+                print("Nueva llamada entrante.")
+
+                # Respuesta automatizada
+                response_text = "Hola, gracias por llamar. Este es un sistema automatizado de triaje médico. Por favor menciona tus síntomas."
+                azure_speech = AzureSpeech()
+                azure_speech.synthesize_speech(response_text)
+
+            return '', 200
         
-        # Manejo del handshake de validación
-        if "validationCode" in data["data"]:
-            print("Solicitud de validación recibida.")
-            validation_code = data["data"]["validationCode"]
-            return jsonify({"validationToken": validation_code}), 200
+        # Si no es una lista válida o no contiene el formato esperado
+        return jsonify({"error": "Cuerpo de solicitud no válido. Se esperaba una lista de eventos."}), 400
 
-        # Procesar eventos normales de llamadas entrantes
-        if data.get("type") == "incomingCall":
-            print("Nueva llamada entrante.")
-
-            # Respuesta automatizada
-            response_text = "Hola, gracias por llamar. Este es un sistema automatizado de triaje médico. Por favor menciona tus síntomas."
-            azure_speech = AzureSpeech()
-            azure_speech.synthesize_speech(response_text)
-
-        return '', 200
     except Exception as e:
         print(f"Error procesando la llamada: {e}")
         return jsonify({"error": f"Error procesando la llamada: {str(e)}"}), 500
 
 
     
-
 @app.route('/api/test', methods=['GET'])
 def test_service():
     """Servicio de prueba para verificar si el endpoint responde correctamente."""
