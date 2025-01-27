@@ -266,7 +266,6 @@
 
 # if __name__ == "__main__":
 #     main()
-
 import time
 from flask import Flask, jsonify, request
 from azure_speech import AzureSpeech
