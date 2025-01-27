@@ -268,10 +268,12 @@
 #     main()
 
 import time
-from aiohttp import web
+from flask import Flask, jsonify, request
 from azure_speech import AzureSpeech
 from openai_client import OpenAIClient
 from state_manager import BotStateManager
+
+app = Flask(__name__)
 
 def check_exit_condition(user_input):
     """Revisa si el usuario ha dicho 'chao' o 'adiós' para salir del flujo."""
@@ -289,17 +291,18 @@ def classify_body_part(user_input):
         return "extremidades"
     return None  # No se identificó una parte del cuerpo
 
-async def handle_call(request):
+@app.route('/api/calls', methods=['POST'])
+def handle_call():
     """Procesa eventos de llamadas entrantes desde ACS y responde automáticamente."""
     try:
-        data = await request.json()
+        data = request.get_json()
         print("Evento recibido:", data)
 
         # Manejo del handshake de validación
         if "validationToken" in data:
             print("Solicitud de validación recibida.")
             validation_token = data["validationToken"]
-            return web.Response(text=validation_token, status=200)
+            return validation_token, 200
 
         # Procesar eventos normales de llamadas entrantes
         if data.get("type") == "incomingCall":
@@ -310,40 +313,42 @@ async def handle_call(request):
             azure_speech = AzureSpeech()
             azure_speech.synthesize_speech(response_text)
 
-        return web.Response(status=200)
+        return '', 200
     except Exception as e:
         print(f"Error procesando la llamada: {e}")
-        return web.Response(status=500, text="Error procesando la llamada.")
+        return jsonify({"error": f"Error procesando la llamada: {str(e)}"}), 500
 
-async def test_service(request):
+@app.route('/api/test', methods=['GET'])
+def test_service():
     """Servicio de prueba para verificar si el endpoint responde correctamente."""
     try:
-        return web.json_response({
+        return jsonify({
             "status": "success",
             "message": "El servicio está funcionando correctamente.",
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())
-        }, status=200)
+        }), 200
     except Exception as e:
-        return web.json_response({
+        return jsonify({
             "status": "error",
             "message": f"Error en el servicio de prueba: {str(e)}"
-        }, status=500)
+        }), 500
 
+@app.route('/api/bot', methods=['POST'])
 def main_bot():
     """Flujo principal del bot."""
-    # Inicializar las clases
-    azure_speech = AzureSpeech()
-    openai_client = OpenAIClient()
-    bot_state = BotStateManager()
+    try:
+        # Inicializar las clases
+        azure_speech = AzureSpeech()
+        openai_client = OpenAIClient()
+        bot_state = BotStateManager()
 
-    # Mensaje de bienvenida inicial
-    welcome_message = "Hola, has entrado al sistema de autotriaje de SURA. ¿Cuáles son tus síntomas?"
-    azure_speech.synthesize_speech(welcome_message)
-    print(f"Bot: {welcome_message}")
-    bot_state.set_state("COLLECTING_SYMPTOMS")  # Cambiar estado inicial
+        # Mensaje de bienvenida inicial
+        welcome_message = "Hola, has entrado al sistema de autotriaje de SURA. ¿Cuáles son tus síntomas?"
+        azure_speech.synthesize_speech(welcome_message)
+        print(f"Bot: {welcome_message}")
+        bot_state.set_state("COLLECTING_SYMPTOMS")  # Cambiar estado inicial
 
-    while True:
-        try:
+        while True:
             # Escuchar al usuario
             user_input = azure_speech.transcribe_audio()
 
@@ -380,22 +385,12 @@ def main_bot():
                 bot_state.reset()
                 break
 
-        except Exception as e:
-            print(f"Error en el flujo principal: {e}")
-            azure_speech.synthesize_speech("Hubo un problema técnico. Por favor, intenta más tarde.")
-            break
-
-    print("Conversación terminada.")
+        print("Conversación terminada.")
+        return '', 200
+    except Exception as e:
+        print(f"Error en el flujo principal: {e}")
+        azure_speech.synthesize_speech("Hubo un problema técnico. Por favor, intenta más tarde.")
+        return jsonify({"error": "Error en el flujo principal"}), 500
 
 if __name__ == "__main__":
-    # Configurar el servidor web para manejar eventos de ACS
-    app = web.Application()
-
-    # Ruta para llamadas de ACS
-    app.router.add_post("/api/calls", handle_call)
-
-    # Ruta para el servicio de prueba
-    app.router.add_get("/api/test", test_service)
-
-    # Iniciar el servidor
-    web.run_app(app, host="0.0.0.0", port=8000)
+    app.run(debug=True, host='0.0.0.0', port=8000)
