@@ -292,30 +292,25 @@ def classify_body_part(user_input):
 
 @app.route('/api/calls', methods=['POST'])
 def handle_call():
-    """Procesa eventos de llamadas entrantes desde ACS y responde automáticamente."""
     try:
         data = request.get_json()
         print("Evento recibido:", data)
 
         # Manejo del handshake de validación
-        if "validationToken" in data:
+        if "data" in data and "validationCode" in data["data"]:
             print("Solicitud de validación recibida.")
-            validation_token = data["validationToken"]
+            validation_token = data["data"]["validationCode"]
             return validation_token, 200
 
-        # Procesar eventos normales de llamadas entrantes
+        # Procesar otros eventos
         if data.get("type") == "incomingCall":
             print("Nueva llamada entrante.")
-
-            # Respuesta automatizada
-            response_text = "Hola, gracias por llamar. Este es un sistema automatizado de triaje médico. Por favor menciona tus síntomas."
-            azure_speech = AzureSpeech()
-            azure_speech.synthesize_speech(response_text)
+            return jsonify({"message": "Evento procesado correctamente."}), 200
 
         return '', 200
     except Exception as e:
         print(f"Error procesando la llamada: {e}")
-        return jsonify({"error": f"Error procesando la llamada: {str(e)}"}), 500
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/test', methods=['GET'])
 def test_service():
