@@ -78,6 +78,7 @@
 #     else:
 #         print(f"Error en la síntesis: {result.reason}")
 
+
 import azure.cognitiveservices.speech as speechsdk
 import os
 from dotenv import load_dotenv
