@@ -1,4 +1,4 @@
-aiohttp
+Flask
 azure-cognitiveservices-speech
 python-dotenv
 openai
